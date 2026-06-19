@@ -306,3 +306,24 @@ The ESP32 does not drive the motor directly. It makes decisions and sends contro
 The driver handles the electrical load.
 
 The motor converts electrical energy into physical motion.
+
+
+## First Motor Test Result
+
+The NEMA 17 motor successfully moved using serial commands from the ESP32.
+
+### Working Commands
+
+- `enable`
+- `open`
+- `close`
+- `stop`
+- `status`
+
+### Issue Encountered
+
+The motor initially did not move because the power strip supplying the 12V adapter was bad. After changing the power source, the motor worked.
+
+### Lesson Learned
+
+When debugging embedded hardware, verify the power path before assuming the problem is in the firmware or wiring.
