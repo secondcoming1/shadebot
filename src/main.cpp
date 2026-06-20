@@ -1,73 +1,22 @@
 #include <Arduino.h>
+#include "StepperMotor.h"
 
-const int STEP_PIN = 26;    // ESP32 D26 -> TMC2209 STP
-const int DIR_PIN = 27;     // ESP32 D27 -> TMC2209 DIR
-const int ENABLE_PIN = 25;  // ESP32 D25 -> TMC2209 EN
+// ESP32 to TMC2209 wiring:
+// ESP32 D26 -> TMC2209 STP
+// ESP32 D27 -> TMC2209 DIR
+// ESP32 D25 -> TMC2209 EN
+
+const int STEP_PIN = 26;
+const int DIR_PIN = 27;
+const int ENABLE_PIN = 25;
+
+const int DEFAULT_MOVE_STEPS = 800;
+
+StepperMotor shadeMotor(STEP_PIN, DIR_PIN, ENABLE_PIN);
 
 String commandBuffer = "";
 
-void stepMotor(int steps, bool direction) {
-    digitalWrite(DIR_PIN, direction ? HIGH : LOW);
-
-    for (int i = 0; i < steps; i++) {
-        digitalWrite(STEP_PIN, HIGH);
-        delayMicroseconds(800);
-        digitalWrite(STEP_PIN, LOW);
-        delayMicroseconds(800);
-    }
-}
-
-void handleCommand(String command) {
-    command.trim();
-
-    Serial.print("Received command: ");
-    Serial.println(command);
-
-    if (command == "open") {
-        Serial.println("Moving motor OPEN direction...");
-        digitalWrite(ENABLE_PIN, LOW);   // LOW usually enables TMC2209
-        stepMotor(800, true);
-        Serial.println("Done.");
-    }
-    else if (command == "close") {
-        Serial.println("Moving motor CLOSE direction...");
-        digitalWrite(ENABLE_PIN, LOW);   // LOW usually enables TMC2209
-        stepMotor(800, false);
-        Serial.println("Done.");
-    }
-    else if (command == "stop") {
-        Serial.println("Disabling motor driver.");
-        digitalWrite(ENABLE_PIN, HIGH);  // HIGH usually disables TMC2209
-    }
-    else if (command == "enable") {
-        Serial.println("Enabling motor driver.");
-        digitalWrite(ENABLE_PIN, LOW);
-    }
-    else if (command == "status") {
-        Serial.println("ShadeBot status: MOTOR TEST READY");
-    }
-    else if (command.length() == 0) {
-        // Ignore blank lines
-    }
-    else {
-        Serial.println("Unknown command.");
-    }
-}
-
-void setup() {
-    delay(2000);
-    Serial.begin(115200);
-    delay(1000);
-
-    pinMode(STEP_PIN, OUTPUT);
-    pinMode(DIR_PIN, OUTPUT);
-    pinMode(ENABLE_PIN, OUTPUT);
-
-    digitalWrite(STEP_PIN, LOW);
-    digitalWrite(DIR_PIN, LOW);
-    digitalWrite(ENABLE_PIN, HIGH); // Start disabled for safety
-
-    Serial.println();
+void printHelp() {
     Serial.println("ShadeBot motor test ready.");
     Serial.println("Type one of these commands and press Enter:");
     Serial.println("open");
@@ -75,7 +24,72 @@ void setup() {
     Serial.println("stop");
     Serial.println("enable");
     Serial.println("status");
+    Serial.println("speedslow");
+    Serial.println("speednormal");
+    Serial.println("help");
     Serial.println();
+}
+
+void handleCommand(String command) {
+    command.trim();
+
+    if (command.length() == 0) {
+        return;
+    }
+
+    Serial.print("Received command: ");
+    Serial.println(command);
+
+    if (command == "open") {
+        Serial.println("Moving motor OPEN direction...");
+        shadeMotor.moveOpen(DEFAULT_MOVE_STEPS);
+        Serial.println("Done.");
+    }
+    else if (command == "close") {
+        Serial.println("Moving motor CLOSE direction...");
+        shadeMotor.moveClose(DEFAULT_MOVE_STEPS);
+        Serial.println("Done.");
+    }
+    else if (command == "stop") {
+        Serial.println("Disabling motor driver.");
+        shadeMotor.disable();
+    }
+    else if (command == "enable") {
+        Serial.println("Enabling motor driver.");
+        shadeMotor.enable();
+    }
+    else if (command == "status") {
+        Serial.println("ShadeBot status: MOTOR TEST READY");
+        Serial.print("Step delay micros: ");
+        Serial.println(shadeMotor.getStepDelayMicros());
+    }
+    else if (command == "speedslow") {
+        shadeMotor.setStepDelayMicros(2000);
+        Serial.println("Motor speed set to slow.");
+    }
+    else if (command == "speednormal") {
+        shadeMotor.setStepDelayMicros(800);
+        Serial.println("Motor speed set to normal.");
+    }
+    else if (command == "help") {
+        printHelp();
+    }
+    else {
+        Serial.println("Unknown command.");
+        Serial.println("Type help for available commands.");
+    }
+}
+
+void setup() {
+    delay(2000);
+
+    Serial.begin(115200);
+    delay(1000);
+
+    shadeMotor.begin();
+
+    Serial.println();
+    printHelp();
 }
 
 void loop() {
