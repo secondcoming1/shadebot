@@ -38,9 +38,18 @@ void StepperMotor::moveClose(int steps) {
     stepMotor(steps, false);
 }
 
+bool StepperMotor::moveOpenUntilLimit(int maxSteps, bool (*limitReached)()) {
+    enable();
+    return stepMotorUntilLimit(maxSteps, true, limitReached);
+}
+
+bool StepperMotor::moveCloseUntilLimit(int maxSteps, bool (*limitReached)()) {
+    enable();
+    return stepMotorUntilLimit(maxSteps, false, limitReached);
+}
+
 void StepperMotor::setStepDelayMicros(int delayMicros) {
     if (delayMicros < 200) {
-        // Avoid going too fast for the first prototype.
         _stepDelayMicros = 200;
     } else {
         _stepDelayMicros = delayMicros;
@@ -51,15 +60,39 @@ int StepperMotor::getStepDelayMicros() const {
     return _stepDelayMicros;
 }
 
-void StepperMotor::stepMotor(int steps, bool direction) {
+void StepperMotor::setDirection(bool direction) {
     digitalWrite(_dirPin, direction ? HIGH : LOW);
     delay(10);
+}
+
+void StepperMotor::stepOnce() {
+    digitalWrite(_stepPin, HIGH);
+    delayMicroseconds(_stepDelayMicros);
+
+    digitalWrite(_stepPin, LOW);
+    delayMicroseconds(_stepDelayMicros);
+}
+
+void StepperMotor::stepMotor(int steps, bool direction) {
+    setDirection(direction);
 
     for (int i = 0; i < steps; i++) {
-        digitalWrite(_stepPin, HIGH);
-        delayMicroseconds(_stepDelayMicros);
-
-        digitalWrite(_stepPin, LOW);
-        delayMicroseconds(_stepDelayMicros);
+        stepOnce();
     }
+}
+
+bool StepperMotor::stepMotorUntilLimit(int maxSteps, bool direction, bool (*limitReached)()) {
+    setDirection(direction);
+
+    for (int i = 0; i < maxSteps; i++) {
+        if (limitReached != nullptr && limitReached()) {
+            disable();
+            return true;
+        }
+
+        stepOnce();
+    }
+
+    disable();
+    return false;
 }

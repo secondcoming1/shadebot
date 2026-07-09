@@ -12,8 +12,9 @@ const int DIR_PIN = 27;
 const int ENABLE_PIN = 25;
 
 // Limit switch wiring:
-// One side of switch -> GPIO pin
-// Other side of switch -> GND
+// Switch terminal 1 / COM -> ESP32 GND
+// Switch terminal 3 / NO  -> ESP32 GPIO pin
+//
 // Uses INPUT_PULLUP:
 // HIGH = not pressed
 // LOW  = pressed
@@ -47,7 +48,7 @@ void printLimitStatus() {
 }
 
 void printHelp() {
-    Serial.println("ShadeBot motor test ready.");
+    Serial.println("ShadeBot limit switch test ready.");
     Serial.println("Type one of these commands and press Enter:");
     Serial.println("open");
     Serial.println("close");
@@ -76,11 +77,13 @@ void handleCommand(String command) {
     if (command == "open") {
         Serial.println("Moving motor OPEN direction for fixed step test...");
         shadeMotor.moveOpen(DEFAULT_MOVE_STEPS);
+        shadeMotor.disable();
         Serial.println("Done.");
     }
     else if (command == "close") {
         Serial.println("Moving motor CLOSE direction for fixed step test...");
         shadeMotor.moveClose(DEFAULT_MOVE_STEPS);
+        shadeMotor.disable();
         Serial.println("Done.");
     }
     else if (command == "openlimit") {
@@ -90,7 +93,10 @@ void handleCommand(String command) {
         }
 
         Serial.println("Moving OPEN until open limit is pressed...");
-        bool hitLimit = shadeMotor.moveOpenUntilLimit(LIMIT_TEST_MAX_STEPS, isOpenLimitReached);
+        bool hitLimit = shadeMotor.moveOpenUntilLimit(
+            LIMIT_TEST_MAX_STEPS,
+            isOpenLimitReached
+        );
 
         if (hitLimit) {
             Serial.println("Stopped: open limit reached.");
@@ -105,7 +111,10 @@ void handleCommand(String command) {
         }
 
         Serial.println("Moving CLOSE until closed limit is pressed...");
-        bool hitLimit = shadeMotor.moveCloseUntilLimit(LIMIT_TEST_MAX_STEPS, isClosedLimitReached);
+        bool hitLimit = shadeMotor.moveCloseUntilLimit(
+            LIMIT_TEST_MAX_STEPS,
+            isClosedLimitReached
+        );
 
         if (hitLimit) {
             Serial.println("Stopped: closed limit reached.");
